@@ -1,5 +1,6 @@
 import itertools
 import json
+import argparse
 import math
 import os
 import pandas as pd
@@ -40,8 +41,11 @@ def main():
 	The main method iterates all over the tsv index files that are generated
 	and calls a crawler method for each one of them.
 	"""
+	parser = argparse.argumentParser()
+	parser.add_argument('--config', default='config.json')
+	args, _ = parser.parse_known_args()
 
-	with open('config.json') as fin:
+	with open(args.config) as fin:
 		config = json.load(fin)['edgar_crawler']
 
 	raw_filings_folder = os.path.join(DATASET_DIR, config['raw_filings_folder'])
