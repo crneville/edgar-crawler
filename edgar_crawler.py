@@ -42,9 +42,10 @@ def main():
 	and calls a crawler method for each one of them.
 	"""
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--config', default='config.json')
+	parser.add_argument('--config', default='config-10K.json')
 	args, _ = parser.parse_known_args()
 
+	LOGGER.info(f'Using config file {os.path.abspath(args.config)}')
 	with open(args.config) as fin:
 		config = json.load(fin)['edgar_crawler']
 
@@ -58,9 +59,9 @@ def main():
 
 	# If the indices and/or download folder doesn't exist, create them
 	if not os.path.isdir(indices_folder):
-		os.mkdir(indices_folder)
+		os.makedirs(indices_folder, exist_ok=True)
 	if not os.path.isdir(raw_filings_folder):
-		os.mkdir(raw_filings_folder)
+		os.makedirs(raw_filings_folder, exist_ok=True)
 
 	if not os.path.isfile(os.path.join(DATASET_DIR, 'companies_info.json')):
 		with open(os.path.join(DATASET_DIR, 'companies_info.json'), 'w') as f:
