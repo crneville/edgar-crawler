@@ -41,7 +41,7 @@ def main():
 	The main method iterates all over the tsv index files that are generated
 	and calls a crawler method for each one of them.
 	"""
-	parser = argparse.argumentParser()
+	parser = argparse.ArgumentParser()
 	parser.add_argument('--config', default='config.json')
 	args, _ = parser.parse_known_args()
 
