@@ -1,0 +1,14 @@
+{
+	"edgar_crawler": {
+		"start_year": 2022,
+		"end_year": 2022,
+		"quarters": [1, 2, 3, 4],
+		"filing_types": ["13D", "13G"],
+		"cik_tickers": [],
+		"user_agent": "Your name (your email)",
+		"raw_filings_folder": "files/13DG/RAW_FILINGS",
+		"indices_folder": "files/13DG/INDICES",
+		"filings_metadata_file": "files/13DG/FILINGS_METADATA.csv",
+		"skip_present_indices": true
+	}
+}
