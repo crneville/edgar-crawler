@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import re
 import sys
+import argparse
 
 from bs4 import BeautifulSoup
 from html.parser import HTMLParser
@@ -456,8 +457,11 @@ def main():
     """
     Gets the list of 10K files and extracts all textual items/sections by calling the extract_items() function.
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='config-10K.json')
+    args, _ = parser.parse_known_args()
 
-    with open('config.json') as fin:
+    with open(args.config) as fin:
         config = json.load(fin)['extract_items']
 
     filings_metadata_filepath = os.path.join(DATASET_DIR, config['filings_metadata_file'])
