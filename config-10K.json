@@ -1,9 +1,9 @@
 {
 	"edgar_crawler": {
-		"start_year": 2021,
+		"start_year": 2013,
 		"end_year": 2022,
 		"quarters": [1, 2, 3, 4],
-		"filing_types": ["10-K", "10-K405", "10-KT"],
+		"filing_types": ["10-K", "10-K405"],
 		"cik_tickers": [],
 		"user_agent": "Your name (your email)",
 		"raw_filings_folder": "files/10K/RAW_FILINGS",
