@@ -527,6 +527,9 @@ def download(
 
 	filepath = os.path.join(download_folder, filename)
 
+	if os.path.isfile(filepath):
+		return True
+
 	try:
 		retries_exceeded = True
 		for _ in range(5):
