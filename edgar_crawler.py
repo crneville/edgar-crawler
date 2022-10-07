@@ -94,7 +94,8 @@ def main():
 	)
 
 	old_df = None
-	if os.path.exists(filings_metadata_filepath):
+	metadata_file_exists = os.path.exists(filings_metadata_filepath)
+	if metadata_file_exists:
 		old_df = []
 		series_to_download = []
 		LOGGER.info(f'\nReading filings metadata...\n')
@@ -122,7 +123,7 @@ def main():
 	LOGGER.info(f'\nDownloading {len(df)} filings...\n')
 
 	final_series = []
-	for series in tqdm(list_of_series, ncols=100):
+	for series in tqdm(list_of_series, ncols=100, desc='Crawling'):
 		series = crawl(
 			series=series,
 			filing_types=config['filing_types'],
@@ -130,10 +131,11 @@ def main():
 			user_agent=config['user_agent']
 		)
 		if series is not None:
-			final_series.append((series.to_frame()).T)
-			final_df = pd.concat(final_series) if (len(final_series) > 1) else final_series[0]
-			final_df = pd.concat([old_df, final_df])
-			final_df.to_csv(filings_metadata_filepath, index=False, header=True)
+			series.to_frame().T.to_csv(filings_metadata_filepath, mode='a', index=False, header=not metadata_file_exists)
+			# final_series.append((series.to_frame()).T)
+			# final_df = pd.concat(final_series) if (len(final_series) > 1) else final_series[0]
+			# final_df = pd.concat([old_df, final_df])
+			# final_df.to_csv(filings_metadata_filepath, index=False, header=True)
 
 	LOGGER.info(f'\nFinal dataframe exported to {filings_metadata_filepath}')
 
