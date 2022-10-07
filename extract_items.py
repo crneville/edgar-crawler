@@ -439,6 +439,7 @@ class ExtractItems:
         return json_content
 
     def process_filing(self, filing_metadata):
+        print(filing_metadata)
         json_filename = f'{filing_metadata["filename"].split(".")[0]}.json'
         absolute_json_filename = os.path.join(self.extracted_files_folder, json_filename)
         if os.path.exists(absolute_json_filename):
@@ -498,7 +499,8 @@ def main():
         processed = list(tqdm(
             pool.imap(extraction.process_filing, list_of_series),
             total=len(list_of_series),
-            ncols=100)
+            ncols=100,
+            desc='Extracting')
         )
 
     LOGGER.info(f'\nItem extraction is completed successfully.')

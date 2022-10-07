@@ -123,6 +123,7 @@ def main():
 	LOGGER.info(f'\nDownloading {len(df)} filings...\n')
 
 	final_series = []
+	needs_header = not metadata_file_exists
 	for series in tqdm(list_of_series, ncols=100, desc='Crawling'):
 		series = crawl(
 			series=series,
@@ -131,7 +132,8 @@ def main():
 			user_agent=config['user_agent']
 		)
 		if series is not None:
-			series.to_frame().T.to_csv(filings_metadata_filepath, mode='a', index=False, header=not metadata_file_exists)
+			series.to_frame().T.to_csv(filings_metadata_filepath, mode='a', index=False, header=needs_header)
+			needs_header = False
 			# final_series.append((series.to_frame()).T)
 			# final_df = pd.concat(final_series) if (len(final_series) > 1) else final_series[0]
 			# final_df = pd.concat([old_df, final_df])
