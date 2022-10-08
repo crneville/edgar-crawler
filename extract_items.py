@@ -353,6 +353,14 @@ class ExtractItems:
 
         return item_section
 
+    def _is_image_data_document(self, doc):
+        image_extentions = f'gif|jpeg|jpg|bmp|png'
+        filename_pattern = f'[a-zA-Z0-9_]+\.({image_extentions})'
+        graphic_match = re.search(r'<TYPE>\s*GRAPHIC\s*\n', doc, flags=regex_flags) is not None
+        filename_match = re.search(f'<FILENAME>\s*{filename_pattern}\s*\n', doc, flags=regex_flags) is not None
+        img_match = re.search(f'<TEXT>\s*\n\s*begin\s+644\s+{filename_pattern}\s*\n', doc, flags=regex_flags) is not None
+        return graphic_match and filename_match and img_match
+
     def extract_items(self, filing_metadata):
         """
         Extracts all items/sections for a 10-K file and writes it to a CIK_10K_YEAR.json file (eg. 1384400_10K_2017.json)
@@ -370,10 +378,19 @@ class ExtractItems:
 
         documents = re.findall('<DOCUMENT>.*?</DOCUMENT>', content, flags=regex_flags)
 
+        is_8k_doc = '_8k_' in filing_metadata["filename"].lower()
+        _8k_filtered_content = ''
+        has_8k_invalid_sections = False
+
         doc_10k = None
         found_10k, is_html = False, False
-        is_8k_doc = '_8k_' in filing_metadata["filename"].lower()
-        for doc in documents:
+        for idx, doc in enumerate(documents):
+            if is_8k_doc:
+                if self._is_image_data_document(doc):
+                    has_8k_invalid_sections = True
+                    continue
+                _8k_filtered_content += doc
+
             doc_type = re.search(r'\n[^\S\r\n]*<TYPE>(.*?)\n', doc, flags=regex_flags)
             doc_type = doc_type.group(1) if doc_type else None
             if doc_type.startswith('10'):
@@ -383,6 +400,10 @@ class ExtractItems:
                     doc_10k = doc
                 found_10k = True
                 break
+
+        if is_8k_doc and has_8k_invalid_sections:
+            LOGGER.info(f'Document {filing_metadata["filename"]} is FORM 8K and has invalid GRAPHIC content, attempting to recover.')
+            content = _8k_filtered_content
 
         if not found_10k:
             if documents and not is_8k_doc:
@@ -415,9 +436,10 @@ class ExtractItems:
             'complete_text_filing_link': filing_metadata['complete_text_file_link'],
             'filename': filing_metadata['filename']
         }
+
         for item_index in self.items_to_extract:
             json_content[f'item_{item_index}'] = ''
-
+        
         text = ExtractItems.strip_html(str(doc_10k))
         text = ExtractItems.clean_text(text)
 
@@ -505,7 +527,7 @@ def main():
 
     list_of_series = list(zip(*filings_metadata_df.iterrows()))[1]
 
-    n_workers = 1
+    n_workers = 3
     with ProcessPool(processes=n_workers) as pool:
         processed = list(tqdm(
             pool.imap(extraction.process_filing, list_of_series),
@@ -513,6 +535,15 @@ def main():
             ncols=100,
             desc='Extracting')
         )
+
+    # import faulthandler
+    # faulthandler.enable()
+    # processed = list(tqdm(
+    #         map(extraction.process_filing, list_of_series),
+    #         total=len(list_of_series),
+    #         ncols=100,
+    #         desc='Extracting')
+    #     )
 
     LOGGER.info(f'\nItem extraction is completed successfully.')
     LOGGER.info(f'{sum(processed)} files were processed.')
