@@ -384,7 +384,7 @@ class ExtractItems:
                 break
 
         if not found_10k:
-            if documents:
+            if documents and '8k' not in filing_metadata["filename"].lower() :
                 LOGGER.info(f'Could not find document type 10K for {filing_metadata["filename"]}')
             doc_10k = BeautifulSoup(content, 'lxml')
             is_html = (True if doc_10k.find('td') else False) and (True if doc_10k.find('tr') else False)
@@ -439,7 +439,6 @@ class ExtractItems:
         return json_content
 
     def process_filing(self, filing_metadata):
-        print(filing_metadata)
         json_filename = f'{filing_metadata["filename"].split(".")[0]}.json'
         absolute_json_filename = os.path.join(self.extracted_files_folder, json_filename)
         if os.path.exists(absolute_json_filename):
