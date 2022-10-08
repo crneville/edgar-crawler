@@ -384,7 +384,7 @@ class ExtractItems:
                 break
 
         if not found_10k:
-            if documents and '8k' not in filing_metadata["filename"].lower() :
+            if documents and '_8k_' not in filing_metadata["filename"].lower() :
                 LOGGER.info(f'Could not find document type 10K for {filing_metadata["filename"]}')
             doc_10k = BeautifulSoup(content, 'lxml')
             is_html = (True if doc_10k.find('td') else False) and (True if doc_10k.find('tr') else False)
@@ -433,7 +433,8 @@ class ExtractItems:
                 json_content[f'item_{item_index}'] = item_section
 
         if all_items_null:
-            LOGGER.info(f'Could not extract any item for {absolute_10k_filename}')
+            if '_8k_' not in absolute_10k_filename:
+                LOGGER.info(f'Could not extract any item for {absolute_10k_filename}')
             return None
 
         return json_content
