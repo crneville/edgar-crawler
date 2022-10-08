@@ -372,6 +372,7 @@ class ExtractItems:
 
         doc_10k = None
         found_10k, is_html = False, False
+        is_8k_doc = '_8k_' in filing_metadata["filename"].lower()
         for doc in documents:
             doc_type = re.search(r'\n[^\S\r\n]*<TYPE>(.*?)\n', doc, flags=regex_flags)
             doc_type = doc_type.group(1) if doc_type else None
@@ -384,7 +385,7 @@ class ExtractItems:
                 break
 
         if not found_10k:
-            if documents and '_8k_' not in filing_metadata["filename"].lower() :
+            if documents and not is_8k_doc:
                 LOGGER.info(f'Could not find document type 10K for {filing_metadata["filename"]}')
             doc_10k = BeautifulSoup(content, 'lxml')
             is_html = (True if doc_10k.find('td') else False) and (True if doc_10k.find('tr') else False)
@@ -433,7 +434,7 @@ class ExtractItems:
                 json_content[f'item_{item_index}'] = item_section
 
         if all_items_null:
-            if '_8k_' not in absolute_10k_filename.lower():
+            if not is_8k_doc:
                 LOGGER.info(f'Could not extract any item for {absolute_10k_filename}')
             return None
 
@@ -445,7 +446,11 @@ class ExtractItems:
         if os.path.exists(absolute_json_filename):
             return 0
 
-        json_content = self.extract_items(filing_metadata)
+        try:
+            json_content = self.extract_items(filing_metadata)
+        except Exception as ex:
+            LOGGER.error(f'!!! ERROR !!! Error parsing {filing_metadata["filename"]}: {ex}')
+            return 0
 
         if json_content is not None:
             with open(absolute_json_filename, 'w') as filepath:
@@ -492,10 +497,16 @@ def main():
     )
 
     LOGGER.info(f'Starting extraction...\n')
+    
+    if 'start_year' in config: 
+        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year >= config['start_year']]
+    if 'end_year' in config: 
+        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year <= config['end_year']]
 
     list_of_series = list(zip(*filings_metadata_df.iterrows()))[1]
 
-    with ProcessPool(processes=1) as pool:
+    n_workers = 1
+    with ProcessPool(processes=n_workers) as pool:
         processed = list(tqdm(
             pool.imap(extraction.process_filing, list_of_series),
             total=len(list_of_series),
