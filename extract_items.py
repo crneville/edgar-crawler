@@ -433,7 +433,7 @@ class ExtractItems:
                 json_content[f'item_{item_index}'] = item_section
 
         if all_items_null:
-            if '_8k_' not in absolute_10k_filename:
+            if '_8k_' not in absolute_10k_filename.lower():
                 LOGGER.info(f'Could not extract any item for {absolute_10k_filename}')
             return None
 
