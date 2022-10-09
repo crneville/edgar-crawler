@@ -100,24 +100,34 @@ def main():
 		series_to_download = []
 		LOGGER.info(f'\nReading filings metadata...\n')
 
-		for _, series in pd.read_csv(filings_metadata_filepath, dtype=str).iterrows():
-			if os.path.exists(os.path.join(raw_filings_folder, series['filename'])):
-				old_df.append((series.to_frame()).T)
-		old_df = pd.concat(old_df) if (len(old_df) > 1) else old_df[0]
+		metadata_file_df = pd.read_csv(filings_metadata_filepath, dtype=str)
+		# for _, series in tqdm(metadata_file_df.iterrows(), total=len(metadata_file_df), desc='Checking Filesystem Against Metadata'):
+		# 	if os.path.exists(os.path.join(raw_filings_folder, series['filename'])):
+		# 		old_df.append((series.to_frame()).T)
+		# old_df = pd.concat(old_df) if (len(old_df) > 1) else old_df[0]
 
-		for _, series in tqdm(df.iterrows(), total=len(df), ncols=100):
-			if len(old_df[old_df['html_index'] == series['html_index']]) == 0:
-				series_to_download.append((series.to_frame()).T)
+		LOGGER.info(f'Checking Existing Files...')
+		file_exists = metadata_file_df.apply(lambda r: os.path.exists(os.path.join(raw_filings_folder, r['filename'])), axis=1)
+		old_df = metadata_file_df[file_exists].copy()
+		del metadata_file_df, file_exists
 
+		# for _, series in tqdm(df.iterrows(), total=len(df), ncols=100):
+		# 	if len(old_df[old_df['html_index'] == series['html_index']]) == 0:
+		# 		series_to_download.append((series.to_frame()).T)
+
+		LOGGER.info(f'Checking Required Files...')
+		series_to_download = df[~df['html_index'].isin(old_df['html_index'])]
 		if len(series_to_download) == 0:
 			LOGGER.info(f'\nThere are no more filings to download for the given years, quarters and companies')
 			exit()
 
-		df = pd.concat(series_to_download) if (len(series_to_download) > 1) else series_to_download[0]
+		# df = pd.concat(series_to_download) if (len(series_to_download) > 1) else series_to_download[0]
+		df = series_to_download.copy()
+		del series_to_download
 
 	# Make a list for each series of them
 	list_of_series = []
-	for i in range(len(df)):
+	for i in tqdm(range(len(df)), desc='Preparing to Download...'):
 		list_of_series.append(df.iloc[i])
 
 	LOGGER.info(f'\nDownloading {len(df)} filings...\n')
