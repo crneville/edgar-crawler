@@ -355,11 +355,15 @@ class ExtractItems:
 
     def _is_image_data_document(self, doc):
         image_extentions = f'gif|jpeg|jpg|bmp|png'
-        filename_pattern = f'[a-zA-Z0-9_]+\.({image_extentions})'
+        filename_pattern = f'\S+\.({image_extentions})'
         graphic_match = re.search(r'<TYPE>\s*GRAPHIC\s*\n', doc, flags=regex_flags) is not None
         filename_match = re.search(f'<FILENAME>\s*{filename_pattern}\s*\n', doc, flags=regex_flags) is not None
         img_match = re.search(f'<TEXT>\s*\n\s*begin\s+644\s+{filename_pattern}\s*\n', doc, flags=regex_flags) is not None
         return graphic_match and filename_match and img_match
+
+    def _get_bs_feature_type(self, content):
+        xml_match = re.search(r'<\?xml|XBRL|xmlns:', content, flags=regex_flags) is not None
+        return 'xml' if xml_match else 'lxml'
 
     def extract_items(self, filing_metadata):
         """
@@ -384,6 +388,8 @@ class ExtractItems:
 
         doc_10k = None
         found_10k, is_html = False, False
+        bs_feature = 'lxml' if not is_8k_doc else self._get_bs_feature_type(content)
+
         for idx, doc in enumerate(documents):
             if is_8k_doc:
                 if self._is_image_data_document(doc):
@@ -394,7 +400,7 @@ class ExtractItems:
             doc_type = re.search(r'\n[^\S\r\n]*<TYPE>(.*?)\n', doc, flags=regex_flags)
             doc_type = doc_type.group(1) if doc_type else None
             if doc_type.startswith('10'):
-                doc_10k = BeautifulSoup(doc, 'lxml')
+                doc_10k = BeautifulSoup(doc, bs_feature)
                 is_html = (True if doc_10k.find('td') else False) and (True if doc_10k.find('tr') else False)
                 if not is_html:
                     doc_10k = doc
@@ -408,7 +414,7 @@ class ExtractItems:
         if not found_10k:
             if documents and not is_8k_doc:
                 LOGGER.info(f'Could not find document type 10K for {filing_metadata["filename"]}')
-            doc_10k = BeautifulSoup(content, 'lxml')
+            doc_10k = BeautifulSoup(content, bs_feature)
             is_html = (True if doc_10k.find('td') else False) and (True if doc_10k.find('tr') else False)
             if not is_html:
                 doc_10k = content
@@ -467,6 +473,8 @@ class ExtractItems:
         absolute_json_filename = os.path.join(self.extracted_files_folder, json_filename)
         if os.path.exists(absolute_json_filename):
             return 0
+
+        # print(filing_metadata["filename"])
 
         try:
             json_content = self.extract_items(filing_metadata)
@@ -527,7 +535,7 @@ def main():
 
     list_of_series = list(zip(*filings_metadata_df.iterrows()))[1]
 
-    n_workers = 3
+    n_workers = 6
     with ProcessPool(processes=n_workers) as pool:
         processed = list(tqdm(
             pool.imap(extraction.process_filing, list_of_series),
