@@ -101,19 +101,9 @@ def main():
 		LOGGER.info(f'\nReading filings metadata...\n')
 
 		metadata_file_df = pd.read_csv(filings_metadata_filepath, dtype=str)
-		# for _, series in tqdm(metadata_file_df.iterrows(), total=len(metadata_file_df), desc='Checking Filesystem Against Metadata'):
-		# 	if os.path.exists(os.path.join(raw_filings_folder, series['filename'])):
-		# 		old_df.append((series.to_frame()).T)
-		# old_df = pd.concat(old_df) if (len(old_df) > 1) else old_df[0]
-
 		LOGGER.info(f'Checking Existing Files...')
-		file_exists = metadata_file_df.apply(lambda r: os.path.exists(os.path.join(raw_filings_folder, r['filename'])), axis=1)
-		old_df = metadata_file_df[file_exists].copy()
-		del metadata_file_df, file_exists
-
-		# for _, series in tqdm(df.iterrows(), total=len(df), ncols=100):
-		# 	if len(old_df[old_df['html_index'] == series['html_index']]) == 0:
-		# 		series_to_download.append((series.to_frame()).T)
+		old_df = metadata_file_df[metadata_file_df.filename.isin(os.listdir(raw_filings_folder))].copy()
+		del metadata_file_df
 
 		LOGGER.info(f'Checking Required Files...')
 		series_to_download = df[~df['html_index'].isin(old_df['html_index'])]
@@ -144,10 +134,6 @@ def main():
 		if series is not None:
 			series.to_frame().T.to_csv(filings_metadata_filepath, mode='a', index=False, header=needs_header)
 			needs_header = False
-			# final_series.append((series.to_frame()).T)
-			# final_df = pd.concat(final_series) if (len(final_series) > 1) else final_series[0]
-			# final_df = pd.concat([old_df, final_df])
-			# final_df.to_csv(filings_metadata_filepath, index=False, header=True)
 
 	LOGGER.info(f'\nFinal dataframe exported to {filings_metadata_filepath}')
 
