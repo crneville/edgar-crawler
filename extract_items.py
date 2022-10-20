@@ -1,3 +1,4 @@
+#%%
 import click
 import cssutils
 import json
@@ -16,6 +17,7 @@ from tqdm import tqdm
 from typing import List
 
 from logger import Logger
+import timeout
 
 from __init__ import DATASET_DIR
 
@@ -233,6 +235,7 @@ class ExtractItems:
 
         return doc_10k
 
+    @timeout.timeout(30)
     def parse_item(self, text, item_index, next_item_list, positions):
         """
         Parses Item N for a 10-K text
@@ -453,7 +456,13 @@ class ExtractItems:
         all_items_null = True
         for i, item_index in enumerate(self.items_list):
             next_item_list = self.items_list[i+1:]
-            item_section, positions = self.parse_item(text, item_index, next_item_list, positions)
+
+            try:
+                item_section, positions = self.parse_item(text, item_index, next_item_list, positions)
+            except timeout.TimeoutError:
+                print(f'Parsing Timeout: {filing_metadata["filename"]}')
+                continue
+
             item_section = ExtractItems.remove_multiple_lines(item_section)
 
             if item_index in self.items_to_extract:
@@ -493,9 +502,7 @@ def main():
     """
     Gets the list of 10K files and extracts all textual items/sections by calling the extract_items() function.
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='config-10K.json')
-    args, _ = parser.parse_known_args()
+    args = _get_additional_args()
 
     with open(args.config) as fin:
         config = json.load(fin)['extract_items']
@@ -528,14 +535,20 @@ def main():
 
     LOGGER.info(f'Starting extraction...\n')
     
-    if 'start_year' in config: 
-        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year >= config['start_year']]
-    if 'end_year' in config: 
-        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year <= config['end_year']]
+    filings_metadata_df['timestamp'] = pd.to_datetime(filings_metadata_df['Date'])
+    filings_metadata_df = filings_metadata_df.sort_values('timestamp')
+
+    if 'start_year' in config or args.start_year is not None:
+        start_year = args.start_year if args.start_year is not None else config['start_year']
+        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year >= start_year]
+    
+    if 'end_year' in config or args.end_year is not None:
+        end_year = args.end_year if args.end_year is not None else config['end_year']
+        filings_metadata_df = filings_metadata_df[pd.to_datetime(filings_metadata_df.Date).dt.year <= end_year]
 
     list_of_series = list(zip(*filings_metadata_df.iterrows()))[1]
 
-    n_workers = 6
+    n_workers = args.workers
     with ProcessPool(processes=n_workers) as pool:
         processed = list(tqdm(
             pool.imap(extraction.process_filing, list_of_series),
@@ -544,19 +557,32 @@ def main():
             desc='Extracting')
         )
 
-    # import faulthandler
+    # import faulthandler, datetime
     # faulthandler.enable()
-    # processed = list(tqdm(
-    #         map(extraction.process_filing, list_of_series),
-    #         total=len(list_of_series),
-    #         ncols=100,
-    #         desc='Extracting')
-    #     )
+    # processed = []
+    # timings = []
+    # for filing in tqdm(list_of_series, total=len(list_of_series), ncols=100, desc='Extracting'):
+    #     _s = datetime.datetime.now()
+    #     item = extraction.process_filing(filing)
+    #     dt = (datetime.datetime.now() - _s).total_seconds()
+    #     processed.append(item)
+    #     timings.append(dt)
+    # LOGGER.info(f'\nAverage processing time: {sum(timings)/len(timings):0.4f}s\nMax processing time: {max(timings):0.4}s\nMinimum processing time: {min(timings):0.4}s\n')
 
     LOGGER.info(f'\nItem extraction is completed successfully.')
     LOGGER.info(f'{sum(processed)} files were processed.')
     LOGGER.info(f'Extracted filings are saved to: {extracted_filings_folder}')
 
+def _get_additional_args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='config-10K.json')
+    parser.add_argument('--start-year', type=int, default=None)
+    parser.add_argument('--end-year', type=int, default=None)
+    parser.add_argument('--workers', type=int, default=8)
+    config = parser.parse_args()
+    return config
 
+#%%
 if __name__ == '__main__':
     main()
