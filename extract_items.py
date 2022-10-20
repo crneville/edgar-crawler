@@ -235,7 +235,7 @@ class ExtractItems:
 
         return doc_10k
 
-    @timeout.timeout(30)
+    @timeout.timeout(120)
     def parse_item(self, text, item_index, next_item_list, positions):
         """
         Parses Item N for a 10-K text
@@ -561,10 +561,14 @@ def main():
     # faulthandler.enable()
     # processed = []
     # timings = []
+    # maxt = 0
     # for filing in tqdm(list_of_series, total=len(list_of_series), ncols=100, desc='Extracting'):
     #     _s = datetime.datetime.now()
     #     item = extraction.process_filing(filing)
     #     dt = (datetime.datetime.now() - _s).total_seconds()
+    #     if dt > maxt:
+    #         maxt = dt
+    #         print(f'\nNew Longest Process: {dt:0.4f}s: {filing["filename"]}')
     #     processed.append(item)
     #     timings.append(dt)
     # LOGGER.info(f'\nAverage processing time: {sum(timings)/len(timings):0.4f}s\nMax processing time: {max(timings):0.4}s\nMinimum processing time: {min(timings):0.4}s\n')
