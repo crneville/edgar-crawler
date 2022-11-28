@@ -548,6 +548,12 @@ def main():
 
     list_of_series = list(zip(*filings_metadata_df.iterrows()))[1]
 
+    if not args.force:
+        existing = [os.path.splitext(f)[0] for f in os.listdir(extracted_filings_folder)]
+        pending = pd.DataFrame([os.path.splitext(s.filename)[0] for s in list_of_series], columns=['filename'])
+        required = pending[~pending.filename.isin(existing)]
+        list_of_series = [list_of_series[idx] for idx in required.index]
+
     n_workers = args.workers
     with ProcessPool(processes=n_workers) as pool:
         processed = list(tqdm(
@@ -584,6 +590,7 @@ def _get_additional_args():
     parser.add_argument('--start-year', type=int, default=None)
     parser.add_argument('--end-year', type=int, default=None)
     parser.add_argument('--workers', type=int, default=8)
+    parser.add_argument('--force', action='store_true')
     config = parser.parse_args()
     return config
 
