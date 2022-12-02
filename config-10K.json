@@ -1,6 +1,6 @@
 {
 	"edgar_crawler": {
-		"start_year": 1995,
+		"start_year": 1999,
 		"end_year": 2022,
 		"quarters": [1, 2, 3, 4],
 		"filing_types": ["10-K", "10-K405"],
