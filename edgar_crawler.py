@@ -35,6 +35,8 @@ urllib3_log.setLevel(logging.CRITICAL)
 LOGGER = Logger(name=os.path.splitext(os.path.basename(os.path.abspath(__file__)))[0]).get_logger()
 LOGGER.info(f'Saving log to {os.path.join(LOGGING_DIR)}\n')
 
+script_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+companies_info_filepath = os.path.join(DATASET_DIR, 'companies_info.json')
 
 def main():
 	"""
@@ -53,6 +55,10 @@ def main():
 	indices_folder = os.path.join(DATASET_DIR, config['indices_folder'])
 	filings_metadata_filepath = os.path.join(DATASET_DIR, config['filings_metadata_file'])
 
+	if 'companies_info' in config:
+		global companies_info_filepath
+		companies_info_filepath = os.path.join(script_dir, config['companies_info'])
+
 	if len(config['filing_types']) == 0:
 		LOGGER.info(f'Please provide at least one filing type')
 		exit()
@@ -63,8 +69,8 @@ def main():
 	if not os.path.isdir(raw_filings_folder):
 		os.makedirs(raw_filings_folder, exist_ok=True)
 
-	if not os.path.isfile(os.path.join(DATASET_DIR, 'companies_info.json')):
-		with open(os.path.join(DATASET_DIR, 'companies_info.json'), 'w') as f:
+	if not os.path.isfile(companies_info_filepath):
+		with open(companies_info_filepath, 'w') as f:
 			json.dump(obj={}, fp=f)
 
 	download_indices(
@@ -373,7 +379,7 @@ def crawl(
 
 	# https://www.sec.gov/cgi-bin/browse-edgar?CIK=0001000228
 	# https://data.sec.gov/submissions/CIK0001000228.json
-	with open(os.path.join(DATASET_DIR, 'companies_info.json')) as f:
+	with open(companies_info_filepath) as f:
 		company_info_dict = json.load(fp=f)
 
 	cik = series['CIK']
@@ -423,7 +429,7 @@ def crawl(
 				if 'Fiscal Year End' in str(content):
 					company_info_dict[cik]['Fiscal Year End'] = str(content).split()[-1]
 
-		with open(os.path.join(DATASET_DIR, 'companies_info.json'), 'w') as f:
+		with open(companies_info_filepath, 'w') as f:
 			json.dump(obj=company_info_dict, fp=f, indent=4)
 
 	if pd.isna(series['SIC']):

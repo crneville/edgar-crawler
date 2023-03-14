@@ -1,7 +1,7 @@
 {
 	"edgar_crawler": {
 		"start_year": 1999,
-		"end_year": 2022,
+		"end_year": 2023,
 		"quarters": [1, 2, 3, 4],
 		"filing_types": ["8-K"],
 		"cik_tickers": [],
@@ -9,7 +9,8 @@
 		"raw_filings_folder": "files/8K/RAW_FILINGS",
 		"indices_folder": "files/8K/INDICES",
 		"filings_metadata_file": "files/8K/FILINGS_METADATA.csv",
-		"skip_present_indices": true
+		"skip_present_indices": true,
+		"companies_info": "datasets/companies_info_8K.json"
 	},
 	"extract_items": {
 		"raw_filings_folder": "files/8K/RAW_FILINGS",
