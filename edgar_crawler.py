@@ -50,6 +50,7 @@ def main():
 	LOGGER.info(f'Using config file {os.path.abspath(args.config)}')
 	with open(args.config) as fin:
 		config = json.load(fin)['edgar_crawler']
+	config['user_agent'] = try_get_up_to_date_user_agent()
 
 	raw_filings_folder = os.path.join(DATASET_DIR, config['raw_filings_folder'])
 	indices_folder = os.path.join(DATASET_DIR, config['indices_folder'])
@@ -597,6 +598,17 @@ def requests_retry_session(
 	session.mount('https://', adapter)
 	return session
 
+def try_get_up_to_date_user_agent():
+    try:
+        url = 'https://www.useragents.me/'
+        response = requests.get(url)
+        page_html = BeautifulSoup(response.text, 'lxml')
+        common_useragents_html = page_html.find(id='most-common-desktop-useragents-json-csv').find('textarea').text
+        common_useragents = json.loads(common_useragents_html)
+        user_agent = common_useragents[0]['ua']
+    except:
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.3'
+    return user_agent
 
 if __name__ == '__main__':
 	main()
