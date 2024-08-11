@@ -50,7 +50,11 @@ def main():
 	LOGGER.info(f'Using config file {os.path.abspath(args.config)}')
 	with open(args.config) as fin:
 		config = json.load(fin)['edgar_crawler']
-	config['user_agent'] = try_get_up_to_date_user_agent()
+
+	if 'USERAGENT' in os.environ:
+		config['user_agent'] = os.environ['USERAGENT']
+	else:
+		config['user_agent'] = try_get_up_to_date_user_agent()
 
 	raw_filings_folder = os.path.join(DATASET_DIR, config['raw_filings_folder'])
 	indices_folder = os.path.join(DATASET_DIR, config['indices_folder'])
