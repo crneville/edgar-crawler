@@ -56,6 +56,8 @@ def main():
 	else:
 		config['user_agent'] = try_get_up_to_date_user_agent()
 
+	print('EDGAR Crawler User Agent:', config['user_agent'])
+
 	raw_filings_folder = os.path.join(DATASET_DIR, config['raw_filings_folder'])
 	indices_folder = os.path.join(DATASET_DIR, config['indices_folder'])
 	filings_metadata_filepath = os.path.join(DATASET_DIR, config['filings_metadata_file'])
